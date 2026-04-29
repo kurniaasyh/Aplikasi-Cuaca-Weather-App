@@ -10,43 +10,71 @@ class SearchField extends StatefulWidget {
 
 class _SearchFieldState extends State<SearchField> {
   final TextEditingController _controller = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            "Tracking Cuaca",
-            style: TextStyle(color: Colors.white),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Tracking Cuaca"),
+        centerTitle: true,
+      ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blue, Colors.lightBlueAccent],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
-          backgroundColor: Colors.blueAccent,
-          centerTitle: true,
         ),
-        body: Center(
-          child: Container(
-            padding: const EdgeInsets.only(left: 50, right: 50),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TextField(
-                  controller: _controller,
-                  decoration: const InputDecoration(
-                    hintText: "Cari Kota...",
+        child: Center(
+          child: Card(
+            elevation: 10,
+            margin: const EdgeInsets.symmetric(horizontal: 30),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.cloud, size: 80, color: Colors.blue),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Cari Cuaca",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20.0),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Result(city: _controller.text),
-                      ),
-                    );
-                  },
-                  child: const Text("Cari"),
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _controller,
+                    decoration: const InputDecoration(
+                      hintText: "Masukkan Kota",
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.location_city),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (_controller.text.isNotEmpty) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                Result(city: _controller.text),
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text("Cari"),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
