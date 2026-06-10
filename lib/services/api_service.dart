@@ -16,4 +16,18 @@ class ApiService {
       throw Exception("Gagal mengambil data cuaca");
     }
   }
+
+  static Future<Map<String, dynamic>> getForecast(String city) async {
+    final url = Uri.parse(
+      "https://api.openweathermap.org/data/2.5/forecast?q=$city&appid=$apiKey&units=metric",
+    );
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception("Gagal mengambil forecast");
+    }
+  }
 }

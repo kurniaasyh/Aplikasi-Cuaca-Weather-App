@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_aplikasi_cuaca/pages/login_page.dart';
 import 'package:flutter_aplikasi_cuaca/main.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class SearchField extends StatefulWidget {
   const SearchField({super.key});
@@ -20,10 +22,13 @@ class _SearchFieldState extends State<SearchField> {
 
   List<String> searchHistory = [];
 
+  List<String> favoriteCities = [];
+
   @override
   void initState() {
     super.initState();
     loadHistory();
+    loadFavorite();
   }
 
   @override
@@ -192,9 +197,156 @@ class _SearchFieldState extends State<SearchField> {
                         ),
                       ),
 
-                      const SizedBox(height: 30),
+                      const SizedBox(
+                        height: 10,
+                      ),
 
-                      // HISTORY TITLE
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: detectLocation,
+                          icon: const Icon(
+                            Icons.my_location,
+                          ),
+                          label: const Text(
+                            "Gunakan Lokasi Saya",
+                          ),
+                        ),
+                      ),
+
+                      // ================= FAVORITE =================
+
+                      if (favoriteCities.isNotEmpty) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(
+                              alpha: 0.08,
+                            ),
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(
+                              color: Colors.amber.shade200,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.amber.shade100,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.star,
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    width: 12,
+                                  ),
+                                  const Text(
+                                    "Kota Favorit",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(
+                                height: 18,
+                              ),
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                children: favoriteCities.map(
+                                  (city) {
+                                    return InkWell(
+                                      borderRadius: BorderRadius.circular(
+                                        50,
+                                      ),
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => Result(
+                                              city: city,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 10,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            50,
+                                          ),
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: Colors.black12,
+                                              blurRadius: 10,
+                                            ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.star,
+                                              size: 18,
+                                              color: Colors.amber,
+                                            ),
+                                            const SizedBox(
+                                              width: 8,
+                                            ),
+                                            ConstrainedBox(
+                                              constraints: const BoxConstraints(
+                                                maxWidth: 130,
+                                              ),
+                                              child: Text(
+                                                city,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              width: 8,
+                                            ),
+                                            GestureDetector(
+                                              onTap: () async {
+                                                await removeFavorite(
+                                                  city,
+                                                );
+                                              },
+                                              child: const Icon(
+                                                Icons.close,
+                                                size: 18,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ).toList(),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 25,
+                        ),
+                      ],
+
+// ================= HISTORY =================
+
                       if (searchHistory.isNotEmpty) ...[
                         const Text(
                           "History Pencarian",
@@ -203,32 +355,34 @@ class _SearchFieldState extends State<SearchField> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-
-                        const SizedBox(height: 15),
-
-                        // HISTORY WRAP
+                        const SizedBox(
+                          height: 15,
+                        ),
                         Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: searchHistory.take(10).map((city) {
-                            return Chip(
-                              backgroundColor: Colors.blue.shade50,
-                              label: Text(
-                                city,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: searchHistory.take(10).map(
+                            (city) {
+                              return Chip(
+                                elevation: 2,
+                                backgroundColor: Colors.blue.shade50,
+                                label: Text(
+                                  city,
                                 ),
-                              ),
-                              deleteIcon: const Icon(Icons.close),
-                              onDeleted: () {
-                                setState(() {
-                                  searchHistory.remove(city);
-
-                                  saveHistory();
-                                });
-                              },
-                            );
-                          }).toList(),
+                                deleteIcon: const Icon(
+                                  Icons.close,
+                                  size: 18,
+                                ),
+                                onDeleted: () {
+                                  removeHistory(
+                                    searchHistory.indexOf(
+                                      city,
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ).toList(),
                         ),
                       ],
                     ],
@@ -305,12 +459,160 @@ class _SearchFieldState extends State<SearchField> {
     }
   }
 
+  Future<void> loadFavorite() async {
+    if (user == null) return;
+
+    FirebaseFirestore.instance
+        .collection(
+          'users',
+        )
+        .doc(
+          user!.uid,
+        )
+        .collection(
+          'favorite',
+        )
+        .snapshots()
+        .listen(
+      (
+        snapshot,
+      ) {
+        if (!mounted) return;
+
+        setState(() {
+          favoriteCities = snapshot.docs
+              .map(
+                (
+                  e,
+                ) =>
+                    e['city'].toString(),
+              )
+              .toList();
+        });
+      },
+    );
+  }
+
+  Future<void> detectLocation() async {
+    bool service = await Geolocator.isLocationServiceEnabled();
+
+    if (!service) {
+      return;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    Position position = await Geolocator.getCurrentPosition();
+
+    List<Placemark> place = await placemarkFromCoordinates(
+      position.latitude,
+      position.longitude,
+    );
+
+    String city = place.first.locality ?? "";
+
+    if (!mounted) return;
+
+    _controller.text = city;
+
+    addHistory(
+      city,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Result(
+          city: city,
+        ),
+      ),
+    );
+  }
+
+  Future<void> addFavorite(
+    String city,
+  ) async {
+    if (user == null) return;
+
+    await FirebaseFirestore.instance
+        .collection(
+          'users',
+        )
+        .doc(
+          user!.uid,
+        )
+        .collection(
+          'favorite',
+        )
+        .add({
+      'city': city,
+    });
+  }
+
+  Future<void> removeFavorite(
+    String city,
+  ) async {
+    if (user == null) return;
+
+    final docs = await FirebaseFirestore.instance
+        .collection(
+          'users',
+        )
+        .doc(
+          user!.uid,
+        )
+        .collection(
+          'favorite',
+        )
+        .where(
+          'city',
+          isEqualTo: city,
+        )
+        .get();
+
+    for (var d in docs.docs) {
+      await d.reference.delete();
+    }
+  }
+
   // 🔹 REMOVE HISTORY
-  void removeHistory(int index) {
+  void removeHistory(int index) async {
+    String city = searchHistory[index];
+
     setState(() {
-      searchHistory.removeAt(index);
+      searchHistory.removeAt(
+        index,
+      );
     });
 
     saveHistory();
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      final snapshot = await FirebaseFirestore.instance
+          .collection(
+            'users',
+          )
+          .doc(
+            user.uid,
+          )
+          .collection(
+            'history',
+          )
+          .where(
+            'city',
+            isEqualTo: city,
+          )
+          .get();
+
+      for (var doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+    }
   }
 }

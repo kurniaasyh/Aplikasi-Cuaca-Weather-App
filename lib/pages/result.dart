@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Result extends StatefulWidget {
   final String city;
@@ -12,11 +14,61 @@ class Result extends StatefulWidget {
 
 class _ResultState extends State<Result> {
   late Future<Map<String, dynamic>> weatherData;
+  late Future<Map<String, dynamic>> forecastData;
+  Future<void> addFavorite() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    final ref = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('favorite');
+
+    final check = await ref
+        .where(
+          'city',
+          isEqualTo: widget.city,
+        )
+        .get();
+
+    if (check.docs.isNotEmpty) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Kota sudah ada di favorit ⭐",
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    await ref.add({
+      'city': widget.city,
+      'time': Timestamp.now(),
+    });
+
+    if (!mounted) return;
+
+    setState(() {});
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          "Ditambahkan ke favorit ⭐",
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     weatherData = ApiService.getWeather(widget.city);
+    forecastData = ApiService.getForecast(widget.city);
   }
 
   IconData getWeatherIcon(String condition) {
@@ -29,6 +81,22 @@ class _ResultState extends State<Result> {
     } else {
       return Icons.wb_cloudy;
     }
+  }
+
+  String getHari(String date) {
+    DateTime d = DateTime.parse(date);
+
+    List<String> hari = [
+      "Sen",
+      "Sel",
+      "Rab",
+      "Kam",
+      "Jum",
+      "Sab",
+      "Min",
+    ];
+
+    return hari[d.weekday - 1];
   }
 
   String translateWeather(String weather) {
@@ -53,11 +121,39 @@ class _ResultState extends State<Result> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Cuaca ${widget.city}"),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+        title: Text(
+          "Cuaca ${widget.city}",
         ),
+        actions: [
+          StreamBuilder(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(FirebaseAuth.instance.currentUser?.uid)
+                .collection('favorite')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const SizedBox();
+              }
+
+              final docs = snapshot.data!.docs;
+
+              bool isFavorite = docs.any(
+                (e) =>
+                    e['city'].toString().toLowerCase() ==
+                    widget.city.toLowerCase(),
+              );
+
+              return IconButton(
+                icon: Icon(
+                  isFavorite ? Icons.star : Icons.star_border,
+                  color: isFavorite ? Colors.amber : null,
+                ),
+                onPressed: isFavorite ? null : addFavorite,
+              );
+            },
+          ),
+        ],
       ),
       body: Container(
         width: double.infinity,
@@ -91,100 +187,270 @@ class _ResultState extends State<Result> {
                 ),
               );
             } else {
-              final data = snapshot.data!;
-              final temp = (data['main']['temp'] - 273.15).toStringAsFixed(1);
+              return FutureBuilder(
+                future: forecastData,
+                builder: (context, forecastSnapshot) {
+                  if (!forecastSnapshot.hasData) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
 
-              final weather =
-                  data['weather'][0]['description'].toString().toLowerCase();
+                  final data = snapshot.data!;
 
-              final humidity = data['main']['humidity'];
+                  final temp = data['main']['temp'].toStringAsFixed(1);
 
-              final wind = data['wind']['speed'];
+                  final weather = data['weather'][0]['description']
+                      .toString()
+                      .toLowerCase();
 
-              final feelsLike =
-                  (data['main']['feels_like'] - 273.15).toStringAsFixed(1);
+                  final forecast = forecastSnapshot.data!['list'];
 
-              return Center(
-                child: Card(
-                  elevation: 10,
-                  margin: const EdgeInsets.symmetric(horizontal: 30),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          getWeatherIcon(weather),
-                          size: 80,
-                          color: Colors.blue,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          data['name'],
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          "$temp °C",
-                          style: const TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          translateWeather(weather),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Column(
-                              children: [
-                                const Icon(Icons.water_drop,
-                                    color: Colors.blue),
-                                const SizedBox(height: 5),
-                                Text("$humidity%"),
-                                const Text("Kelembapan"),
-                              ],
+                  return SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          // CARD UTAMA
+                          Card(
+                            elevation: 10,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            Column(
-                              children: [
-                                const Icon(Icons.air, color: Colors.grey),
-                                const SizedBox(height: 5),
-                                Text("$wind m/s"),
-                                const Text("Angin"),
-                              ],
+                            child: Padding(
+                              padding: const EdgeInsets.all(25),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    getWeatherIcon(
+                                      weather,
+                                    ),
+                                    size: 90,
+                                    color: Colors.blue,
+                                  ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  Text(
+                                    data['name'],
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  Text(
+                                    "$temp°C",
+                                    style: const TextStyle(
+                                      fontSize: 42,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  Text(
+                                    translateWeather(
+                                      weather,
+                                    ),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 25,
+                                  ),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: detailCard(
+                                          Icons.thermostat,
+                                          "Terasa",
+                                          "${data['main']['feels_like'].round()}°C",
+                                        ),
+                                      ),
+                                      const SizedBox(
+                                        width: 10,
+                                      ),
+                                      Expanded(
+                                        child: detailCard(
+                                          Icons.water_drop,
+                                          "Lembap",
+                                          "${data['main']['humidity']}%",
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: detailCard(
+                                          Icons.air,
+                                          "Angin",
+                                          "${data['wind']['speed']} m/s",
+                                        ),
+                                      ),
+                                      const SizedBox(
+                                        width: 10,
+                                      ),
+                                      Expanded(
+                                        child: detailCard(
+                                          Icons.speed,
+                                          "Tekanan",
+                                          "${data['main']['pressure']} hPa",
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                            Column(
-                              children: [
-                                const Icon(Icons.thermostat,
-                                    color: Colors.orange),
-                                const SizedBox(height: 5),
-                                Text("$feelsLike°C"),
-                                const Text("Terasa"),
-                              ],
+                          ),
+
+                          const SizedBox(
+                            height: 30,
+                          ),
+
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              "Forecast 5 Hari",
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+
+                          const SizedBox(
+                            height: 15,
+                          ),
+
+                          SizedBox(
+                            height: 150,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: List.generate(
+                                  5,
+                                  (index) {
+                                    final item = forecast[index * 8];
+
+                                    return Container(
+                                      width: 95,
+                                      margin: const EdgeInsets.only(
+                                        right: 12,
+                                      ),
+                                      child: Card(
+                                        elevation: 5,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(
+                                            12,
+                                          ),
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceEvenly,
+                                            children: [
+                                              Text(
+                                                getHari(
+                                                  item['dt_txt'],
+                                                ),
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Icon(
+                                                getWeatherIcon(
+                                                  item['weather'][0]['main']
+                                                      .toString()
+                                                      .toLowerCase(),
+                                                ),
+                                                size: 26,
+                                                color: Colors.blue,
+                                              ),
+                                              Text(
+                                                "${item['main']['temp'].round()}°",
+                                              ),
+                                              Text(
+                                                translateWeather(
+                                                  item['weather'][0]['main'],
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 10,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               );
             }
           },
         ),
+      ),
+    );
+  }
+
+  Widget detailCard(
+    IconData icon,
+    String title,
+    String value,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(
+        15,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(
+          15,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: Colors.blue,
+          ),
+          const SizedBox(
+            height: 8,
+          ),
+          Text(
+            title,
+          ),
+          const SizedBox(
+            height: 5,
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
