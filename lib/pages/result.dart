@@ -31,6 +31,24 @@ class _ResultState extends State<Result> {
     }
   }
 
+  String translateWeather(String weather) {
+    weather = weather.toLowerCase();
+
+    if (weather.contains("clear")) {
+      return "Cerah";
+    } else if (weather.contains("cloud")) {
+      return "Berawan";
+    } else if (weather.contains("rain")) {
+      return "Hujan";
+    } else if (weather.contains("thunderstorm")) {
+      return "Badai Petir";
+    } else if (weather.contains("mist")) {
+      return "Berkabut";
+    } else {
+      return weather;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,8 +93,16 @@ class _ResultState extends State<Result> {
             } else {
               final data = snapshot.data!;
               final temp = (data['main']['temp'] - 273.15).toStringAsFixed(1);
+
               final weather =
                   data['weather'][0]['description'].toString().toLowerCase();
+
+              final humidity = data['main']['humidity'];
+
+              final wind = data['wind']['speed'];
+
+              final feelsLike =
+                  (data['main']['feels_like'] - 273.15).toStringAsFixed(1);
 
               return Center(
                 child: Card(
@@ -113,11 +139,43 @@ class _ResultState extends State<Result> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          weather.toUpperCase(),
+                          translateWeather(weather),
                           style: const TextStyle(
                             fontSize: 18,
                             color: Colors.grey,
                           ),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            Column(
+                              children: [
+                                const Icon(Icons.water_drop,
+                                    color: Colors.blue),
+                                const SizedBox(height: 5),
+                                Text("$humidity%"),
+                                const Text("Kelembapan"),
+                              ],
+                            ),
+                            Column(
+                              children: [
+                                const Icon(Icons.air, color: Colors.grey),
+                                const SizedBox(height: 5),
+                                Text("$wind m/s"),
+                                const Text("Angin"),
+                              ],
+                            ),
+                            Column(
+                              children: [
+                                const Icon(Icons.thermostat,
+                                    color: Colors.orange),
+                                const SizedBox(height: 5),
+                                Text("$feelsLike°C"),
+                                const Text("Terasa"),
+                              ],
+                            ),
+                          ],
                         ),
                       ],
                     ),

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "872525258393",
+    "project_id": "cuaca-app-4ec04",
+    "storage_bucket": "cuaca-app-4ec04.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:872525258393:android:8bdb7c7ea56411bb66a208",
+        "android_client_info": {
+          "package_name": "com.example.flutter_aplikasi_cuaca"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC1RPnNMblD6uO2YT_QPmz0mcWZUlCW3g0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
