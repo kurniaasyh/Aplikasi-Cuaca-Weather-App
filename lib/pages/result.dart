@@ -64,11 +64,62 @@ class _ResultState extends State<Result> {
     );
   }
 
+  Future<void> saveHistory() async {
+    try {
+      final data = await ApiService.getWeather(
+        widget.city,
+      );
+
+      String cityName = data['name'];
+
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) return;
+
+      final ref = FirebaseFirestore.instance
+          .collection(
+            'users',
+          )
+          .doc(
+            user.uid,
+          )
+          .collection(
+            'history',
+          );
+
+      final check = await ref
+          .where(
+            'city',
+            isEqualTo: cityName,
+          )
+          .get();
+
+      if (check.docs.isEmpty) {
+        await ref.add({
+          'city': cityName,
+          'time': Timestamp.now(),
+        });
+      }
+    } catch (e) {
+      debugPrint(
+        "SAVE HISTORY ERROR: $e",
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    weatherData = ApiService.getWeather(widget.city);
-    forecastData = ApiService.getForecast(widget.city);
+
+    weatherData = ApiService.getWeather(
+      widget.city,
+    );
+
+    forecastData = ApiService.getForecast(
+      widget.city,
+    );
+
+    saveHistory();
   }
 
   IconData getWeatherIcon(String condition) {

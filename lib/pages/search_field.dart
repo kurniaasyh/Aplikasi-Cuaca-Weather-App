@@ -6,7 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_aplikasi_cuaca/pages/login_page.dart';
 import 'package:flutter_aplikasi_cuaca/main.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 
 class SearchField extends StatefulWidget {
   const SearchField({super.key});
@@ -396,7 +395,7 @@ class _SearchFieldState extends State<SearchField> {
     );
   }
 
-  // 🔹 LOAD FIRESTORE
+  // LOAD FIRESTORE
   Future<void> loadHistory() async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -415,7 +414,7 @@ class _SearchFieldState extends State<SearchField> {
     });
   }
 
-  // 🔹 SAVE LOCAL
+  // SAVE LOCAL
   Future<void> saveHistory() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -425,7 +424,7 @@ class _SearchFieldState extends State<SearchField> {
     );
   }
 
-  // 🔹 ADD HISTORY
+  // ADD HISTORY
   void addHistory(String city) async {
     setState(() {
       searchHistory.remove(city);
@@ -494,43 +493,56 @@ class _SearchFieldState extends State<SearchField> {
   }
 
   Future<void> detectLocation() async {
-    bool service = await Geolocator.isLocationServiceEnabled();
+    try {
+      bool service = await Geolocator.isLocationServiceEnabled();
 
-    if (!service) {
-      return;
-    }
+      if (!service) {
+        await Geolocator.openLocationSettings();
+        return;
+      }
 
-    LocationPermission permission = await Geolocator.checkPermission();
+      LocationPermission permission = await Geolocator.checkPermission();
 
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
 
-    Position position = await Geolocator.getCurrentPosition();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
 
-    List<Placemark> place = await placemarkFromCoordinates(
-      position.latitude,
-      position.longitude,
-    );
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
 
-    String city = place.first.locality ?? "";
+      debugPrint(
+        "${position.latitude}, ${position.longitude}",
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    _controller.text = city;
-
-    addHistory(
-      city,
-    );
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => Result(
-          city: city,
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => Result(
+            city: "${position.latitude},${position.longitude}",
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      debugPrint("LOCATION ERROR = $e");
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString(),
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> addFavorite(
