@@ -1,8 +1,10 @@
+//======= IMPORTS (LIBRARY & HALAMAN LAIN) =======
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'search_field.dart';
 import 'register_page.dart';
 
+//======= WIDGET HALAMAN LOGIN (STATEFUL) =======
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -10,12 +12,16 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
+//======= STATE DARI HALAMAN LOGIN =======
 class _LoginPageState extends State<LoginPage> {
+  //======= KONTROLER INPUT TEKS =======
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
+  //======= FUNGSI LOGIN DENGAN FIREBASE =======
   Future<void> login() async {
     try {
+      // Menjalankan fungsi login dari Firebase Authentication
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
@@ -23,6 +29,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
+      //======= NAVIGASI KE HALAMAN PENCARIAN (BERHASIL) =======
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const SearchField()),
@@ -30,8 +37,10 @@ class _LoginPageState extends State<LoginPage> {
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
 
+      //======= PENANGANAN ERROR (ERROR HANDLING) =======
       String message = "";
 
+      // Menentukan pesan error berdasarkan kode error yang diterima dari Firebase
       if (e.code == 'user-not-found') {
         message = "Email belum terdaftar";
       } else if (e.code == 'wrong-password') {
@@ -42,6 +51,7 @@ class _LoginPageState extends State<LoginPage> {
         message = e.message ?? "Login gagal";
       }
 
+      // Menampilkan pesan error di layar menggunakan SnackBar
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
@@ -50,10 +60,13 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    //======= TAMPILAN ANTARMUKA (UI) =======
     return Scaffold(
       body: Container(
         width: double.infinity,
         height: double.infinity,
+
+        //======= DESAIN LATAR BELAKANG (GRADIENT) =======
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -66,6 +79,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         child: Center(
           child: SingleChildScrollView(
+            //======= KOTAK FORM (CARD) =======
             child: Card(
               elevation: 10,
               margin: const EdgeInsets.symmetric(horizontal: 30),
@@ -77,6 +91,7 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    //======= LOGO & TEKS HEADER =======
                     const Icon(
                       Icons.cloud,
                       size: 100,
@@ -98,6 +113,8 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     const SizedBox(height: 20),
+
+                    //======= INPUT EMAIL =======
                     TextField(
                       controller: emailController,
                       decoration: InputDecoration(
@@ -108,10 +125,13 @@ class _LoginPageState extends State<LoginPage> {
                         prefixIcon: const Icon(Icons.email),
                       ),
                     ),
+
                     const SizedBox(height: 15),
+
+                    //======= INPUT PASSWORD =======
                     TextField(
                       controller: passwordController,
-                      obscureText: true,
+                      obscureText: true, // Menyembunyikan teks sandi
                       decoration: InputDecoration(
                         labelText: "Password",
                         border: OutlineInputBorder(
@@ -120,7 +140,10 @@ class _LoginPageState extends State<LoginPage> {
                         prefixIcon: const Icon(Icons.lock),
                       ),
                     ),
+
                     const SizedBox(height: 20),
+
+                    //======= TOMBOL LOGIN =======
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -132,9 +155,9 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         onPressed: () {
                           String email = emailController.text.trim();
-
                           String password = passwordController.text.trim();
 
+                          //======= VALIDASI INPUT KOSONG =======
                           if (email.isEmpty || password.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -143,15 +166,17 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               ),
                             );
-
                             return;
                           }
 
+                          // Memanggil fungsi login jika validasi lolos
                           login();
                         },
                         child: const Text("Login"),
                       ),
                     ),
+
+                    //======= TOMBOL MENUJU HALAMAN REGISTER =======
                     TextButton(
                       onPressed: () {
                         Navigator.push(

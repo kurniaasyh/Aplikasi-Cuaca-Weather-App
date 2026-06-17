@@ -1,3 +1,4 @@
+//======= IMPORTS (LIBRARY & FILE LAIN) =======
 import 'package:flutter/material.dart';
 import 'package:flutter_aplikasi_cuaca/pages/result.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_aplikasi_cuaca/pages/login_page.dart';
 import 'package:flutter_aplikasi_cuaca/main.dart';
 import 'package:geolocator/geolocator.dart';
 
+//======= WIDGET HALAMAN PENCARIAN UTAMA (STATEFUL) =======
 class SearchField extends StatefulWidget {
   const SearchField({super.key});
 
@@ -14,15 +16,18 @@ class SearchField extends StatefulWidget {
   State<SearchField> createState() => _SearchFieldState();
 }
 
+// Halaman utama setelah login, berisi search field untuk mencari cuaca berdasarkan kota
+//======= STATE DARI HALAMAN PENCARIAN =======
 class _SearchFieldState extends State<SearchField> {
+  //======= VARIABEL STATE & KONTROLER =======
   final TextEditingController _controller = TextEditingController();
-
   final user = FirebaseAuth.instance.currentUser;
 
   List<String> searchHistory = [];
-
   List<String> favoriteCities = [];
 
+  //======= INISIALISASI AWAL (INIT STATE) =======
+  // LOAD HISTORY & FAVORITE DARI FIRESTORE
   @override
   void initState() {
     super.initState();
@@ -32,11 +37,15 @@ class _SearchFieldState extends State<SearchField> {
 
   @override
   Widget build(BuildContext context) {
+    // UI halaman utama dengan search field, tombol cari, dan daftar history pencarian serta kota favorit
+    //======= TAMPILAN ANTARMUKA (UI) =======
     return Scaffold(
+      //======= APP BAR (HEADER) & TOMBOL AKSI =======
       appBar: AppBar(
         title: const Text("Tracking Cuaca"),
         centerTitle: true,
         actions: [
+          // Toggle Theme (Mengubah Tema Terang/Gelap)
           IconButton(
             icon: Icon(
               MyApp.of(context).isDarkMode ? Icons.dark_mode : Icons.light_mode,
@@ -45,6 +54,8 @@ class _SearchFieldState extends State<SearchField> {
               MyApp.of(context).toggleTheme();
             },
           ),
+
+          // Tombol Logout
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -62,9 +73,13 @@ class _SearchFieldState extends State<SearchField> {
           ),
         ],
       ),
+
+      //======= AREA KONTEN UTAMA =======
       body: Container(
         width: double.infinity,
         height: double.infinity,
+
+        //======= DESAIN LATAR BELAKANG (GRADIENT) =======
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -79,6 +94,8 @@ class _SearchFieldState extends State<SearchField> {
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(20),
+
+              //======= KOTAK UTAMA (CARD) =======
               child: Card(
                 elevation: 15,
                 shadowColor: Colors.black26,
@@ -90,7 +107,7 @@ class _SearchFieldState extends State<SearchField> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ICON
+                      //======= IKON AWAN BESAR (HEADER) =======
                       Center(
                         child: Container(
                           padding: const EdgeInsets.all(18),
@@ -105,10 +122,9 @@ class _SearchFieldState extends State<SearchField> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 20),
 
-                      // WELCOME
+                      //======= TEKS SELAMAT DATANG =======
                       Center(
                         child: Text(
                           "Selamat datang, ${user?.displayName ?? 'User'}",
@@ -119,10 +135,9 @@ class _SearchFieldState extends State<SearchField> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 10),
 
-                      // TITLE
+                      //======= SUBTITLE =======
                       const Center(
                         child: Text(
                           "Cari Cuaca",
@@ -132,10 +147,9 @@ class _SearchFieldState extends State<SearchField> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 30),
 
-                      // SEARCH FIELD
+                      //======= INPUT PENCARIAN KOTA (TEXT FIELD) =======
                       TextField(
                         controller: _controller,
                         decoration: InputDecoration(
@@ -154,10 +168,9 @@ class _SearchFieldState extends State<SearchField> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 20),
 
-                      // BUTTON
+                      //======= TOMBOL CARI CUACA =======
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -171,6 +184,7 @@ class _SearchFieldState extends State<SearchField> {
                               borderRadius: BorderRadius.circular(18),
                             ),
                           ),
+                          // Ketika tombol cari ditekan, tambahkan kota ke history dan navigasi ke halaman result
                           onPressed: () {
                             String city = _controller.text.trim();
 
@@ -185,6 +199,7 @@ class _SearchFieldState extends State<SearchField> {
                               );
                             }
                           },
+                          // Style tombol cari
                           child: const Text(
                             "Cari Cuaca",
                             style: TextStyle(
@@ -200,6 +215,7 @@ class _SearchFieldState extends State<SearchField> {
                         height: 10,
                       ),
 
+                      //======= TOMBOL GUNAKAN LOKASI SAYA =======
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
@@ -213,8 +229,7 @@ class _SearchFieldState extends State<SearchField> {
                         ),
                       ),
 
-                      // ================= FAVORITE =================
-
+                      //======= BAGIAN KOTA FAVORIT =======
                       if (favoriteCities.isNotEmpty) ...[
                         Container(
                           width: double.infinity,
@@ -259,6 +274,8 @@ class _SearchFieldState extends State<SearchField> {
                               const SizedBox(
                                 height: 18,
                               ),
+
+                              // Daftar Kota Favorit
                               Wrap(
                                 spacing: 10,
                                 runSpacing: 10,
@@ -344,8 +361,7 @@ class _SearchFieldState extends State<SearchField> {
                         ),
                       ],
 
-// ================= HISTORY =================
-
+                      //======= BAGIAN RIWAYAT PENCARIAN (HISTORY) =======
                       if (searchHistory.isNotEmpty) ...[
                         const Text(
                           "History Pencarian",
@@ -395,7 +411,7 @@ class _SearchFieldState extends State<SearchField> {
     );
   }
 
-  // LOAD FIRESTORE
+  //======= FUNGSI: MENGAMBIL RIWAYAT DARI FIRESTORE =======
   Future<void> loadHistory() async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -414,7 +430,7 @@ class _SearchFieldState extends State<SearchField> {
     });
   }
 
-  // SAVE LOCAL
+  //======= FUNGSI: MENYIMPAN RIWAYAT KE LOKAL (SHARED PREFERENCES) =======
   Future<void> saveHistory() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -424,16 +440,16 @@ class _SearchFieldState extends State<SearchField> {
     );
   }
 
-  // ADD HISTORY
+  //======= FUNGSI: MENAMBAHKAN RIWAYAT PENCARIAN =======
   void addHistory(String city) async {
     setState(() {
       searchHistory.remove(city);
-
       searchHistory.insert(0, city);
     });
 
     saveHistory();
 
+    // SIMPAN KE FIRESTORE
     final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
@@ -458,6 +474,7 @@ class _SearchFieldState extends State<SearchField> {
     }
   }
 
+  //======= FUNGSI: MENGAMBIL DAFTAR FAVORIT DARI FIRESTORE =======
   Future<void> loadFavorite() async {
     if (user == null) return;
 
@@ -492,6 +509,7 @@ class _SearchFieldState extends State<SearchField> {
     );
   }
 
+  //======= FUNGSI: DETEKSI LOKASI PENGGUNA (GPS/GEOFIREBASE) =======
   Future<void> detectLocation() async {
     try {
       bool service = await Geolocator.isLocationServiceEnabled();
@@ -522,6 +540,7 @@ class _SearchFieldState extends State<SearchField> {
 
       if (!mounted) return;
 
+      // Navigasi ke halaman result dengan parameter kota berupa koordinat latitude dan longitude
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -545,6 +564,7 @@ class _SearchFieldState extends State<SearchField> {
     }
   }
 
+  //======= FUNGSI: MENAMBAHKAN KOTA KE FAVORIT DI FIRESTORE =======
   Future<void> addFavorite(
     String city,
   ) async {
@@ -565,6 +585,7 @@ class _SearchFieldState extends State<SearchField> {
     });
   }
 
+  //======= FUNGSI: MENGHAPUS KOTA DARI FAVORIT DI FIRESTORE =======
   Future<void> removeFavorite(
     String city,
   ) async {
@@ -591,7 +612,7 @@ class _SearchFieldState extends State<SearchField> {
     }
   }
 
-  // 🔹 REMOVE HISTORY
+  //======= FUNGSI: MENGHAPUS RIWAYAT PENCARIAN (LOKAL & FIRESTORE) =======
   void removeHistory(int index) async {
     String city = searchHistory[index];
 

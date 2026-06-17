@@ -1,8 +1,10 @@
+//======= IMPORTS (LIBRARY & FILE LAIN) =======
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+//======= WIDGET HALAMAN HASIL PENCARIAN CUACA (STATEFUL) =======
 class Result extends StatefulWidget {
   final String city;
 
@@ -12,9 +14,13 @@ class Result extends StatefulWidget {
   State<Result> createState() => _ResultState();
 }
 
+//======= STATE DARI HALAMAN HASIL =======
 class _ResultState extends State<Result> {
+  //======= VARIABEL STATE (FUTURE DATA CUACA & FORECAST) =======
   late Future<Map<String, dynamic>> weatherData;
   late Future<Map<String, dynamic>> forecastData;
+
+  //======= FUNGSI MENAMBAHKAN KOTA KE FAVORIT (FIRESTORE) =======
   Future<void> addFavorite() async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -32,6 +38,7 @@ class _ResultState extends State<Result> {
         )
         .get();
 
+    // Mengecek apakah kota sudah ada di favorit
     if (check.docs.isNotEmpty) {
       if (!mounted) return;
 
@@ -46,6 +53,7 @@ class _ResultState extends State<Result> {
       return;
     }
 
+    // Menyimpan data kota favorit ke Firestore
     await ref.add({
       'city': widget.city,
       'time': Timestamp.now(),
@@ -64,6 +72,7 @@ class _ResultState extends State<Result> {
     );
   }
 
+  //======= FUNGSI MENYIMPAN RIWAYAT PENCARIAN (FIRESTORE) =======
   Future<void> saveHistory() async {
     try {
       final data = await ApiService.getWeather(
@@ -94,6 +103,7 @@ class _ResultState extends State<Result> {
           )
           .get();
 
+      // Menyimpan ke riwayat hanya jika belum ada di database
       if (check.docs.isEmpty) {
         await ref.add({
           'city': cityName,
@@ -107,6 +117,7 @@ class _ResultState extends State<Result> {
     }
   }
 
+  //======= INISIALISASI AWAL STATE (INIT STATE) =======
   @override
   void initState() {
     super.initState();
@@ -122,6 +133,7 @@ class _ResultState extends State<Result> {
     saveHistory();
   }
 
+  //======= FUNGSI HELPER: MENDAPATKAN IKON CUACA =======
   IconData getWeatherIcon(String condition) {
     if (condition.contains("cloud")) {
       return Icons.cloud;
@@ -134,6 +146,7 @@ class _ResultState extends State<Result> {
     }
   }
 
+  //======= FUNGSI HELPER: MENDAPATKAN NAMA HARI =======
   String getHari(String date) {
     DateTime d = DateTime.parse(date);
 
@@ -150,6 +163,7 @@ class _ResultState extends State<Result> {
     return hari[d.weekday - 1];
   }
 
+  //======= FUNGSI HELPER: MENERJEMAHKAN STATUS CUACA KE BAHASA INDONESIA =======
   String translateWeather(String weather) {
     weather = weather.toLowerCase();
 
@@ -170,7 +184,9 @@ class _ResultState extends State<Result> {
 
   @override
   Widget build(BuildContext context) {
+    //======= TAMPILAN ANTARMUKA UTAMA (UI) =======
     return Scaffold(
+      //======= APP BAR & TOMBOL FAVORIT (STREAM BUILDER) =======
       appBar: AppBar(
         title: Text(
           "Cuaca ${widget.city}",
@@ -189,6 +205,7 @@ class _ResultState extends State<Result> {
 
               final docs = snapshot.data!.docs;
 
+              // Mengecek status favorit untuk mengubah warna ikon bintang
               bool isFavorite = docs.any(
                 (e) =>
                     e['city'].toString().toLowerCase() ==
@@ -209,6 +226,8 @@ class _ResultState extends State<Result> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
+
+        //======= DESAIN LATAR BELAKANG (GRADIENT) =======
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Colors.blue, Colors.lightBlueAccent],
@@ -216,6 +235,8 @@ class _ResultState extends State<Result> {
             end: Alignment.bottomCenter,
           ),
         ),
+
+        //======= FUTURE BUILDER: MENGAMBIL DATA CUACA SAAT INI =======
         child: FutureBuilder(
           future: weatherData,
           builder: (context, snapshot) {
@@ -224,6 +245,7 @@ class _ResultState extends State<Result> {
                 child: CircularProgressIndicator(color: Colors.white),
               );
             } else if (snapshot.hasError) {
+              //======= TAMPILAN JIKA TERJADI ERROR API =======
               return const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -238,6 +260,7 @@ class _ResultState extends State<Result> {
                 ),
               );
             } else {
+              //======= FUTURE BUILDER: MENGAMBIL DATA FORECAST =======
               return FutureBuilder(
                 future: forecastData,
                 builder: (context, forecastSnapshot) {
@@ -248,13 +271,10 @@ class _ResultState extends State<Result> {
                   }
 
                   final data = snapshot.data!;
-
                   final temp = data['main']['temp'].toStringAsFixed(1);
-
                   final weather = data['weather'][0]['description']
                       .toString()
                       .toLowerCase();
-
                   final forecast = forecastSnapshot.data!['list'];
 
                   return SingleChildScrollView(
@@ -262,7 +282,7 @@ class _ResultState extends State<Result> {
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
-                          // CARD UTAMA
+                          //======= KARTU UTAMA (MAIN WEATHER CARD) =======
                           Card(
                             elevation: 10,
                             shape: RoundedRectangleBorder(
@@ -313,6 +333,8 @@ class _ResultState extends State<Result> {
                                   const SizedBox(
                                     height: 25,
                                   ),
+
+                                  //======= GRID INFO DETAIL (BARIS 1: TERASA & LEMBAP) =======
                                   Row(
                                     children: [
                                       Expanded(
@@ -337,6 +359,8 @@ class _ResultState extends State<Result> {
                                   const SizedBox(
                                     height: 10,
                                   ),
+
+                                  //======= GRID INFO DETAIL (BARIS 2: ANGIN & TEKANAN) =======
                                   Row(
                                     children: [
                                       Expanded(
@@ -367,6 +391,7 @@ class _ResultState extends State<Result> {
                             height: 30,
                           ),
 
+                          //======= BAGIAN FORECAST 5 HARI =======
                           const Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -382,6 +407,7 @@ class _ResultState extends State<Result> {
                             height: 15,
                           ),
 
+                          //======= LIST HORIZONTAL (WIDGET SCROLL) FORECAST =======
                           SizedBox(
                             height: 150,
                             child: SingleChildScrollView(
@@ -465,6 +491,8 @@ class _ResultState extends State<Result> {
     );
   }
 
+  //======= WIDGET KUSTOM: KARTU DETAIL KECIL =======
+  // (Digunakan untuk menampilkan parameter cuaca seperti kelembapan, angin, dll)
   Widget detailCard(
     IconData icon,
     String title,
